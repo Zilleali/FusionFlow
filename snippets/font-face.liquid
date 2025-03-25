@@ -1,0 +1,7 @@
+{%- unless settings.heading_font.system? -%}
+  <link rel="stylesheet" href="{{ 'heading_font.css' | asset_url }}" media="print" onload="this.media='all'">
+{%- endunless -%}
+
+{%- unless settings.body_font.system? -%}
+  <link rel="stylesheet" href="{{ 'body_font.css' | asset_url }}" media="print" onload="this.media='all'">
+{%- endunless -%}
