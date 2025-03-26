@@ -1,0 +1,152 @@
+{%- liquid
+  assign wishlist_app_enabled = false
+  assign compare_app_enabled = false
+
+  # Check if popular wishlist apps are installed
+  if shop.metafields.wishlist or content_for_header contains 'swym'
+    assign wishlist_app_enabled = true
+  endif
+
+  if content_for_header contains 'ProductCompare'
+    assign compare_app_enabled = true
+  endif
+-%}
+
+<div class="wishlist-compare-buttons" data-wishlist-compare>
+  {% unless wishlist_app_enabled %}
+    <button type="button" class="wishlist-button" data-wishlist-add="{{ product.id }}" aria-label="{{ 'products.wishlist.add_to_wishlist' | t }}">
+      <span class="wishlist-button__icon">
+        {% render 'icon-heart' %}
+      </span>
+      <span class="wishlist-button__text">
+        {{ 'products.wishlist.add_to_wishlist' | t }}
+      </span>
+    </button>
+  {% endunless %}
+
+  {% unless compare_app_enabled %}
+    <button type="button" class="compare-button" data-compare-add="{{ product.id }}" aria-label="{{ 'products.compare.add_to_compare' | t }}">
+      <span class="compare-button__icon">
+        {% render 'icon-compare' %}
+      </span>
+      <span class="compare-button__text">
+        {{ 'products.compare.add_to_compare' | t }}
+      </span>
+    </button>
+  {% endunless %}
+</div>
+
+<style>
+  .wishlist-compare-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .wishlist-button,
+  .compare-button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-text);
+    transition: color 0.2s ease;
+  }
+  
+  .wishlist-button:hover,
+  .compare-button:hover {
+    color: var(--color-primary);
+  }
+  
+  .wishlist-button[data-added="true"],
+  .compare-button[data-added="true"] {
+    color: var(--color-primary);
+  }
+  
+  .wishlist-button__icon,
+  .compare-button__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .wishlist-button__text,
+  .compare-button__text {
+    font-size: 0.875rem;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize wishlist and compare
+  const wishlist = JSON.parse(localStorage.getItem('fusion-wishlist')) || [];
+  const compare = JSON.parse(localStorage.getItem('fusion-compare')) || [];
+  
+  // Update button states
+  function updateButtonStates() {
+    document.querySelectorAll('[data-wishlist-add]').forEach(button => {
+      const productId = button.dataset.wishlistAdd;
+      button.setAttribute('data-added', wishlist.includes(productId));
+    });
+    
+    document.querySelectorAll('[data-compare-add]').forEach(button => {
+      const productId = button.dataset.compareAdd;
+      button.setAttribute('data-added', compare.includes(productId));
+    });
+  }
+  
+  // Wishlist functionality
+  document.querySelectorAll('[data-wishlist-add]').forEach(button => {
+    button.addEventListener('click', function() {
+      const productId = this.dataset.wishlistAdd;
+      const index = wishlist.indexOf(productId);
+      
+      if (index === -1) {
+        wishlist.push(productId);
+      } else {
+        wishlist.splice(index, 1);
+      }
+      
+      localStorage.setItem('fusion-wishlist', JSON.stringify(wishlist));
+      updateButtonStates();
+      
+      // Dispatch event for other components
+      document.dispatchEvent(new CustomEvent('wishlistUpdated', {
+        detail: { productId, inWishlist: index === -1 }
+      }));
+    });
+  });
+  
+  // Compare functionality
+  document.querySelectorAll('[data-compare-add]').forEach(button => {
+    button.addEventListener('click', function() {
+      const productId = this.dataset.compareAdd;
+      const index = compare.indexOf(productId);
+      
+      if (index === -1) {
+        if (compare.length >= 4) {
+          alert('{{ "products.compare.max_items" | t }}');
+          return;
+        }
+        compare.push(productId);
+      } else {
+        compare.splice(index, 1);
+      }
+      
+      localStorage.setItem('fusion-compare', JSON.stringify(compare));
+      updateButtonStates();
+      
+      // Dispatch event for other components
+      document.dispatchEvent(new CustomEvent('compareUpdated', {
+        detail: { productId, inCompare: index === -1 }
+      }));
+    });
+  });
+  
+  // Initial update
+  updateButtonStates();
+});
+</script>

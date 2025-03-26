@@ -1,0 +1,234 @@
+{%- liquid
+  assign featured_media = product.selected_or_first_available_variant.featured_media | default: product.featured_media
+  assign media_count = product.media.size
+  assign enable_zoom = enable_zoom | default: false
+  assign thumbnail_position = thumbnail_position | default: 'bottom'
+  assign enable_video_looping = enable_video_looping | default: false
+-%}
+
+<div class="product-gallery" data-product-gallery data-thumbnail-position="{{ thumbnail_position }}">
+  <div class="product-gallery__main">
+    {%- for media in product.media -%}
+      <div class="product-gallery__media" 
+           data-media-id="{{ media.id }}"
+           data-media-type="{{ media.media_type }}"
+           {% if media.media_type == 'video' or media.media_type == 'external_video' %} 
+             data-video-loop="{{ enable_video_looping }}"
+           {% endif %}>
+        {% render 'product-media', media: media, featured_media: featured_media, enable_zoom: enable_zoom %}
+      </div>
+    {%- endfor -%}
+  </div>
+  
+  {% if media_count > 1 %}
+    <div class="product-gallery__thumbs product-gallery__thumbs--{{ thumbnail_position }}">
+      {% for media in product.media %}
+        <button type="button" 
+                class="product-gallery__thumb"
+                data-thumb-id="{{ media.id }}"
+                aria-label="Show product image {{ forloop.index }}">
+          <img src="{{ media.preview_image | img_url: '100x' }}" 
+               alt="{{ media.alt | escape }}"
+               loading="lazy"
+               width="100"
+               height="{{ 100 | divided_by: media.preview_image.aspect_ratio | round }}">
+          
+          {% if media.media_type == 'video' or media.media_type == 'external_video' %}
+            <div class="product-gallery__thumb-icon">
+              {% render 'icon-play' %}
+            </div>
+          {% endif %}
+          
+          {% if media.media_type == 'model' %}
+            <div class="product-gallery__thumb-icon">
+              {% render 'icon-3d' %}
+            </div>
+          {% endif %}
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  {% if enable_zoom %}
+    <div class="product-gallery__zoom" data-product-zoom></div>
+  {% endif %}
+</div>
+
+<style>
+  .product-gallery {
+    position: relative;
+  }
+  
+  .product-gallery__main {
+    position: relative;
+    margin-bottom: 15px;
+  }
+  
+  .product-gallery__media {
+    display: none;
+    position: relative;
+  }
+  
+  .product-gallery__media.active {
+    display: block;
+  }
+  
+  .product-gallery__thumbs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .product-gallery__thumbs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .product-gallery__thumbs--bottom {
+    flex-direction: row;
+  }
+  
+  .product-gallery__thumbs--left {
+    flex-direction: column;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 80px;
+  }
+  
+  .product-gallery__thumb {
+    position: relative;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 1px solid #eee;
+    background: none;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+  
+  .product-gallery__thumb:hover,
+  .product-gallery__thumb.active {
+    opacity: 1;
+    border-color: var(--color-primary);
+  }
+  
+  .product-gallery__thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .product-gallery__thumb-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .product-gallery__zoom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    background-repeat: no-repeat;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+  }
+  
+  @media (max-width: 767px) {
+    .product-gallery__thumbs--left {
+      position: static;
+      width: 100%;
+      flex-direction: row;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const galleries = document.querySelectorAll('[data-product-gallery]');
+  
+  galleries.forEach(gallery => {
+    const mainMedia = gallery.querySelectorAll('.product-gallery__media');
+    const thumbs = gallery.querySelectorAll('.product-gallery__thumb');
+    const zoom = gallery.querySelector('[data-product-zoom]');
+    const thumbnailPosition = gallery.dataset.thumbnailPosition;
+    
+    // Initialize first media as active
+    if (mainMedia.length > 0) {
+      mainMedia[0].classList.add('active');
+      if (thumbs.length > 0) thumbs[0].classList.add('active');
+    }
+    
+    // Handle thumb click
+    thumbs.forEach(thumb => {
+      thumb.addEventListener('click', function() {
+        const mediaId = this.dataset.thumbId;
+        
+        // Update active states
+        thumbs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        mainMedia.forEach(media => {
+          media.classList.remove('active');
+          if (media.dataset.mediaId === mediaId) {
+            media.classList.add('active');
+            
+            // Handle video playback
+            const video = media.querySelector('video');
+            if (video) {
+              video.currentTime = 0;
+              video.play();
+            }
+          }
+        });
+        
+        // Scroll thumb into view for horizontal thumbnails
+        if (thumbnailPosition === 'bottom') {
+          this.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      });
+    });
+    
+    // Image zoom functionality
+    if (zoom) {
+      const activeImage = gallery.querySelector('.product-gallery__media.active img');
+      
+      gallery.addEventListener('mousemove', function(e) {
+        if (!activeImage) return;
+        
+        const rect = activeImage.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const xPercent = (x / rect.width) * 100;
+        const yPercent = (y / rect.height) * 100;
+        
+        zoom.style.backgroundImage = `url(${activeImage.src})`;
+        zoom.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+        zoom.style.opacity = '1';
+      });
+      
+      gallery.addEventListener('mouseleave', function() {
+        zoom.style.opacity = '0';
+      });
+    }
+  });
+});
+</script>

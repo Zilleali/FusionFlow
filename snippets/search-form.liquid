@@ -1,0 +1,221 @@
+<form action="{{ routes.search_url }}" method="get" role="search" class="search-form" data-search-form>
+  <input type="hidden" name="type" value="product">
+  <input type="hidden" name="options[prefix]" value="last">
+  
+  <div class="search-form__inner">
+    <input type="search"
+           name="q"
+           value="{{ search.terms | escape }}"
+           placeholder="{{ 'general.search.placeholder' | t }}"
+           aria-label="{{ 'general.search.placeholder' | t }}"
+           class="search-form__input"
+           data-search-input
+           autocomplete="off">
+    
+    <button type="submit" class="search-form__submit" aria-label="{{ 'general.search.submit' | t }}">
+      {% render 'icon-search' %}
+    </button>
+  </div>
+  
+  <div class="search-form__results" data-search-results></div>
+</form>
+
+<style>
+  .search-form {
+    position: relative;
+  }
+  
+  .search-form__inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-form__input {
+    width: 100%;
+    padding: 10px 15px;
+    padding-right: 40px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .search-form__submit {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .search-form__results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    z-index: 100;
+  }
+  
+  .search-form__results.active {
+    display: block;
+  }
+  
+  .search-result {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .search-result:last-child {
+    border-bottom: none;
+  }
+  
+  .search-result__image {
+    width: 60px;
+    height: 60px;
+    flex: 0 0 60px;
+    background-color: #f5f5f5;
+  }
+  
+  .search-result__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .search-result__info {
+    flex: 1;
+  }
+  
+  .search-result__title {
+    margin: 0 0 5px;
+    font-size: 0.875rem;
+  }
+  
+  .search-result__price {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  .search-result__no-results {
+    padding: 15px;
+    text-align: center;
+  }
+  
+  .search-result__view-all {
+    display: block;
+    padding: 15px;
+    text-align: center;
+    background-color: #f5f5f5;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchForms = document.querySelectorAll('[data-search-form]');
+  
+  searchForms.forEach(form => {
+    const input = form.querySelector('[data-search-input]');
+    const results = form.querySelector('[data-search-results]');
+    let controller = null;
+    
+    // Handle input
+    input.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      if (query.length < 3) {
+        results.classList.remove('active');
+        return;
+      }
+      
+      // Cancel previous request if any
+      if (controller) {
+        controller.abort();
+      }
+      
+      // Create new AbortController for this request
+      controller = new AbortController();
+      
+      // Show loading state
+      results.innerHTML = '<div class="search-result__loading">Loading...</div>';
+      results.classList.add('active');
+      
+      // Fetch results
+      fetch(`${window.Shopify.routes.root}search/suggest.json?q=${encodeURIComponent(query)}&resources[type]=product&resources[limit]=5`, {
+        signal: controller.signal
+      })
+        .then(response => response.json())
+        .then(data => {
+          const products = data.resources.results.products;
+          
+          if (products.length === 0) {
+            results.innerHTML = '<div class="search-result__no-results">No products found</div>';
+            return;
+          }
+          
+          let html = '';
+          
+          products.forEach(product => {
+            html += `
+              <a href="${product.url}" class="search-result">
+                <div class="search-result__image">
+                  <img src="${product.image}" alt="${product.title}">
+                </div>
+                <div class="search-result__info">
+                  <h3 class="search-result__title">${product.title}</h3>
+                  <div class="search-result__price">
+                    ${product.price}
+                  </div>
+                </div>
+              </a>
+            `;
+          });
+          
+          html += `
+            <a href="${window.Shopify.routes.root}search?q=${encodeURIComponent(query)}&type=product" class="search-result__view-all">
+              View all results
+            </a>
+          `;
+          
+          results.innerHTML = html;
+        })
+        .catch(error => {
+          if (error.name !== 'AbortError') {
+            console.error('Search error:', error);
+            results.innerHTML = '<div class="search-result__no-results">Error loading results</div>';
+          }
+        });
+    });
+    
+    // Close results when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!form.contains(event.target)) {
+        results.classList.remove('active');
+      }
+    });
+    
+    // Close on escape
+    input.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        results.classList.remove('active');
+      }
+    });
+  });
+});
+</script>
