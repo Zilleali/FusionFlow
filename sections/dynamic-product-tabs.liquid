@@ -1,0 +1,370 @@
+{%- liquid
+  assign blocks = section.blocks | sort: 'type'
+  assign has_tabs = false
+  assign has_accordions = false
+
+  if section.settings.layout == 'tabs'
+    assign has_tabs = true
+  elsif section.settings.layout == 'accordions'
+    assign has_accordions = true
+  endif
+-%}
+
+<div class="product-tabs" data-product-tabs data-layout="{{ section.settings.layout }}">
+  {% if has_tabs %}
+    <div class="product-tabs__nav">
+      {% for block in blocks %}
+        <button type="button" 
+                class="product-tabs__nav-item" 
+                data-tab-trigger="{{ block.id }}"
+                {{ block.shopify_attributes }}>
+          {{ block.settings.heading | default: block.type | replace: '_', ' ' | capitalize }}
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="product-tabs__content">
+    {% for block in blocks %}
+      <div class="product-tabs__panel" 
+           data-tab-panel="{{ block.id }}"
+           {{ block.shopify_attributes }}>
+        {% if has_accordions %}
+          <button type="button" 
+                  class="product-tabs__accordion-trigger"
+                  data-accordion-trigger="{{ block.id }}"
+                  aria-expanded="false">
+            {{ block.settings.heading | default: block.type | replace: '_', ' ' | capitalize }}
+            {% render 'icon-chevron-down' %}
+          </button>
+        {% endif %}
+
+        <div class="product-tabs__panel-inner" 
+             data-accordion-content="{{ block.id }}">
+          {% case block.type %}
+            {% when 'description' %}
+              <div class="product-tabs__description rte">
+                {{ product.description }}
+              </div>
+
+            {% when 'reviews' %}
+              <div id="shopify-product-reviews" data-id="{{product.id}}">
+                {{ product.metafields.spr.reviews }}
+              </div>
+
+            {% when 'custom' %}
+              <div class="product-tabs__custom rte">
+                {{ block.settings.content }}
+                {{ block.settings.page.content }}
+              </div>
+
+            {% when 'size_guide' %}
+              <div class="product-tabs__size-guide">
+                {% if block.settings.size_image != blank %}
+                  <div class="product-tabs__size-image">
+                    <img src="{{ block.settings.size_image | img_url: '800x' }}" 
+                         alt="{{ block.settings.size_image.alt | escape }}"
+                         loading="lazy">
+                  </div>
+                {% endif %}
+                <div class="product-tabs__size-content rte">
+                  {{ block.settings.size_content }}
+                </div>
+              </div>
+
+            {% when 'shipping' %}
+              <div class="product-tabs__shipping rte">
+                {{ block.settings.shipping_content }}
+              </div>
+          {% endcase %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .product-tabs {
+    margin: 50px 0;
+  }
+
+  .product-tabs__nav {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 30px;
+  }
+
+  .product-tabs__nav-item {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .product-tabs__nav-item.active {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .product-tabs__panel {
+    display: none;
+  }
+
+  .product-tabs__panel.active {
+    display: block;
+  }
+
+  .product-tabs__accordion-trigger {
+    width: 100%;
+    padding: 15px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .product-tabs__accordion-trigger svg {
+    transition: transform 0.3s ease;
+  }
+
+  .product-tabs__accordion-trigger[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  .product-tabs__panel-inner {
+    padding: 20px 0;
+  }
+
+  .product-tabs__size-guide {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+  }
+
+  .product-tabs__size-image img {
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 767px) {
+    .product-tabs__nav {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .product-tabs__nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .product-tabs__nav-item {
+      white-space: nowrap;
+    }
+
+    .product-tabs__size-guide {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tabsContainers = document.querySelectorAll('[data-product-tabs]');
+  
+  tabsContainers.forEach(container => {
+    const layout = container.dataset.layout;
+    const triggers = container.querySelectorAll('[data-tab-trigger], [data-accordion-trigger]');
+    const panels = container.querySelectorAll('[data-tab-panel]');
+    
+    // Initialize first tab/accordion as active
+    if (panels.length > 0) {
+      if (layout === 'tabs') {
+        triggers[0].classList.add('active');
+        panels[0].classList.add('active');
+      } else if (layout === 'accordions') {
+        const firstTrigger = container.querySelector('[data-accordion-trigger]');
+        const firstContent = container.querySelector('[data-accordion-content]');
+        
+        if (firstTrigger && firstContent) {
+          firstTrigger.setAttribute('aria-expanded', 'true');
+          firstContent.style.display = 'block';
+        }
+      }
+    }
+    
+    // Tab functionality
+    if (layout === 'tabs') {
+      triggers.forEach(trigger => {
+        trigger.addEventListener('click', function() {
+          const panelId = this.dataset.tabTrigger;
+          
+          // Update active states
+          triggers.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          
+          panels.forEach(panel => {
+            panel.classList.remove('active');
+            if (panel.dataset.tabPanel === panelId) {
+              panel.classList.add('active');
+            }
+          });
+        });
+      });
+    }
+    
+    // Accordion functionality
+    if (layout === 'accordions') {
+      triggers.forEach(trigger => {
+        trigger.addEventListener('click', function() {
+          const panelId = this.dataset.accordionTrigger;
+          const content = container.querySelector(`[data-accordion-content="${panelId}"]`);
+          const isExpanded = this.getAttribute('aria-expanded') === 'true';
+          
+          this.setAttribute('aria-expanded', !isExpanded);
+          content.style.display = isExpanded ? 'none' : 'block';
+        });
+      });
+    }
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Dynamic product tabs",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "tabs",
+          "label": "Tabs"
+        },
+        {
+          "value": "accordions",
+          "label": "Accordions"
+        }
+      ],
+      "default": "tabs"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "description",
+      "name": "Description",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Description"
+        }
+      ]
+    },
+    {
+      "type": "reviews",
+      "name": "Reviews",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Reviews"
+        }
+      ]
+    },
+    {
+      "type": "custom",
+      "name": "Custom content",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Custom tab"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Content"
+        },
+        {
+          "type": "page",
+          "id": "page",
+          "label": "Content from page"
+        }
+      ]
+    },
+    {
+      "type": "size_guide",
+      "name": "Size guide",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Size guide"
+        },
+        {
+          "type": "image_picker",
+          "id": "size_image",
+          "label": "Size chart image"
+        },
+        {
+          "type": "richtext",
+          "id": "size_content",
+          "label": "Content"
+        }
+      ]
+    },
+    {
+      "type": "shipping",
+      "name": "Shipping & returns",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Shipping & returns"
+        },
+        {
+          "type": "richtext",
+          "id": "shipping_content",
+          "label": "Content"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Dynamic product tabs",
+      "blocks": [
+        {
+          "type": "description"
+        },
+        {
+          "type": "reviews"
+        },
+        {
+          "type": "size_guide"
+        },
+        {
+          "type": "shipping"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

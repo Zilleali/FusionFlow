@@ -1,0 +1,60 @@
+{%- liquid
+  assign current_stock = current_stock | default: 0
+  assign max_stock = max_stock | default: 100
+  assign threshold = threshold | default: 10
+  assign show_counter = show_counter | default: true
+  assign show_percentage = show_percentage | default: false
+  assign label = label | default: 'products.product.stock_label' | t: count: current_stock
+  assign progress = current_stock | times: 100 | divided_by: max_stock
+-%}
+
+<div class="stock-progress" data-stock-progress>
+  {% if show_counter %}
+    <div class="stock-progress__label">
+      {{ label }}
+    </div>
+  {% endif %}
+  
+  <div class="stock-progress__bar">
+    <div class="stock-progress__fill" 
+         style="width: {{ progress }}%;
+                {% if current_stock <= threshold %}background-color: #d32f2f;{% endif %}">
+    </div>
+  </div>
+  
+  {% if show_percentage %}
+    <div class="stock-progress__percentage">
+      {{ progress }}%
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .stock-progress {
+    margin: 20px 0;
+  }
+
+  .stock-progress__label {
+    margin-bottom: 5px;
+    font-size: 0.875rem;
+  }
+
+  .stock-progress__bar {
+    height: 6px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stock-progress__fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    transition: width 0.5s ease, background-color 0.3s ease;
+  }
+
+  .stock-progress__percentage {
+    margin-top: 5px;
+    font-size: 0.75rem;
+    text-align: right;
+  }
+</style>

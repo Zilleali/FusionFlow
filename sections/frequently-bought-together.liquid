@@ -1,0 +1,361 @@
+{%- liquid
+  assign product = product | default: nil
+  assign heading = section.settings.heading
+  assign max_products = section.settings.max_products | at_least: 2
+  assign show_discount = section.settings.show_discount
+  assign discount_amount = section.settings.discount_amount
+  assign discount_type = section.settings.discount_type
+  
+  if product == nil and section.settings.product != blank
+    assign product = section.settings.product
+  endif
+  
+  if product == nil
+    assign product = all_products.first
+  endif
+  
+  # Get recommended products (could be replaced with more sophisticated logic)
+  assign recommended_products = product.metafields.recommendations.related_products.value | default: product.collections.first.products | default: collections.all.products
+  assign recommended_products = recommended_products | where: 'available' | where: 'id', '!=', product.id | limit: max_products
+  
+  # Calculate bundle price
+  assign bundle_price = product.price
+  assign bundle_compare_price = product.compare_at_price | default: product.price
+  
+  for rec_product in recommended_products
+    assign bundle_price = bundle_price | plus: rec_product.price
+    assign bundle_compare_price = bundle_compare_price | plus: rec_product.compare_at_price | default: rec_product.price
+  endfor
+  
+  # Apply discount
+  if show_discount
+    if discount_type == 'percentage'
+      assign discount_multiplier = 1.0 | minus: discount_amount | times: 0.01
+      assign bundle_price = bundle_price | times: discount_multiplier
+    else
+      assign bundle_price = bundle_price | minus: discount_amount
+    endif
+  endif
+-%}
+
+{% if recommended_products.size > 0 %}
+  <div class="frequently-bought-together" data-frequently-bought-together>
+    <h2 class="frequently-bought-together__heading">{{ heading }}</h2>
+    
+    <div class="frequently-bought-together__products">
+      <div class="frequently-bought-together__product">
+        <div class="frequently-bought-together__checkbox">
+          <input type="checkbox" 
+                 id="fbt-{{ product.id }}" 
+                 data-fbt-checkbox 
+                 data-product-id="{{ product.id }}" 
+                 checked 
+                 disabled>
+          <label for="fbt-{{ product.id }}"></label>
+        </div>
+        {% render 'product-card', product: product, small: true %}
+      </div>
+      
+      {% for rec_product in recommended_products %}
+        <div class="frequently-bought-together__product">
+          <div class="frequently-bought-together__checkbox">
+            <input type="checkbox" 
+                   id="fbt-{{ rec_product.id }}" 
+                   data-fbt-checkbox 
+                   data-product-id="{{ rec_product.id }}" 
+                   checked>
+            <label for="fbt-{{ rec_product.id }}"></label>
+          </div>
+          {% render 'product-card', product: rec_product, small: true %}
+        </div>
+      {% endfor %}
+    </div>
+    
+    <div class="frequently-bought-together__footer">
+      <div class="frequently-bought-together__pricing">
+        {% if bundle_compare_price > bundle_price %}
+          <span class="frequently-bought-together__compare-price">
+            {{ bundle_compare_price | money }}
+          </span>
+        {% endif %}
+        <span class="frequently-bought-together__price">
+          {{ bundle_price | money }}
+        </span>
+        
+        {% if show_discount %}
+          <span class="frequently-bought-together__discount">
+            {{ 'products.bundle.discount_label' | t }} 
+            {% if discount_type == 'percentage' %}
+              {{ discount_amount }}%
+            {% else %}
+              {{ discount_amount | money }}
+            {% endif %}
+          </span>
+        {% endif %}
+      </div>
+      
+      <button type="button" class="frequently-bought-together__add button button--primary" data-fbt-add>
+        {{ 'products.bundle.add_to_cart' | t }}
+      </button>
+    </div>
+  </div>
+{% endif %}
+
+<style>
+  .frequently-bought-together {
+    margin: 50px 0;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+  }
+
+  .frequently-bought-together__heading {
+    margin: 0 0 30px;
+    text-align: center;
+  }
+
+  .frequently-bought-together__products {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+
+  .frequently-bought-together__product {
+    position: relative;
+  }
+
+  .frequently-bought-together__checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+  }
+
+  .frequently-bought-together__checkbox input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .frequently-bought-together__checkbox label {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .frequently-bought-together__checkbox input:checked + label {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .frequently-bought-together__checkbox input:checked + label::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .frequently-bought-together__checkbox input:disabled + label {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .frequently-bought-together__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .frequently-bought-together__pricing {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .frequently-bought-together__compare-price {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .frequently-bought-together__price {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .frequently-bought-together__discount {
+    padding: 5px 10px;
+    background-color: var(--color-primary);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+
+  .frequently-bought-together__add {
+    min-width: 200px;
+  }
+
+  @media (max-width: 767px) {
+    .frequently-bought-together__footer {
+      flex-direction: column;
+    }
+
+    .frequently-bought-together__add {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fbtSections = document.querySelectorAll('[data-frequently-bought-together]');
+  
+  fbtSections.forEach(section => {
+    const checkboxes = section.querySelectorAll('[data-fbt-checkbox]:not(:disabled)');
+    const addButton = section.querySelector('[data-fbt-add]');
+    let items = [];
+    
+    // Get initial selected items
+    function updateSelectedItems() {
+      items = [];
+      section.querySelectorAll('[data-fbt-checkbox]:checked').forEach(checkbox => {
+        items.push(checkbox.dataset.productId);
+      });
+      
+      // Enable/disable add button based on selection
+      if (addButton) {
+        addButton.disabled = items.length === 0;
+      }
+    }
+    
+    // Handle checkbox changes
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateSelectedItems);
+    });
+    
+    // Handle add to cart
+    if (addButton) {
+      addButton.addEventListener('click', function() {
+        if (items.length === 0) return;
+        
+        this.disabled = true;
+        this.textContent = '{{ "products.product.adding_to_cart" | t }}';
+        
+        const formData = {
+          items: items.map(id => ({
+            id: parseInt(id),
+            quantity: 1
+          }))
+        };
+        
+        fetch(window.Shopify.routes.root + 'cart/add.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          this.textContent = '{{ "products.product.added_to_cart" | t }}';
+          document.dispatchEvent(new CustomEvent('cart:refresh'));
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          this.textContent = '{{ "products.product.add_to_cart_error" | t }}';
+        })
+        .finally(() => {
+          setTimeout(() => {
+            this.textContent = '{{ "products.bundle.add_to_cart" | t }}';
+            this.disabled = false;
+          }, 2000);
+        });
+      });
+    }
+    
+    // Initial update
+    updateSelectedItems();
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Frequently bought together",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently bought together"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "info": "Select a product or leave empty to use the current product"
+    },
+    {
+      "type": "range",
+      "id": "max_products",
+      "label": "Maximum products",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "header",
+      "content": "Bundle discount"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_discount",
+      "label": "Show bundle discount",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "discount_type",
+      "label": "Discount type",
+      "options": [
+        {
+          "value": "percentage",
+          "label": "Percentage"
+        },
+        {
+          "value": "fixed_amount",
+          "label": "Fixed amount"
+        }
+      ],
+      "default": "percentage"
+    },
+    {
+      "type": "range",
+      "id": "discount_amount",
+      "label": "Discount amount",
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "default": 10,
+      "unit": "%"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Frequently bought together"
+    }
+  ]
+}
+{% endschema %}
