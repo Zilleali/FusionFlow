@@ -1,0 +1,163 @@
+{%- liquid
+  assign menu = linklists[menu_handle]
+  assign columns = columns | default: 4
+  assign image_ratio = image_ratio | default: 'portrait'
+  assign show_images = show_images | default: false
+-%}
+
+<div class="mega-menu" data-mega-menu>
+  <div class="mega-menu__inner">
+    <div class="mega-menu__columns grid grid--{{ columns }}-col-desktop">
+      {% for link in menu.links %}
+        <div class="mega-menu__column grid__item">
+          {% if show_images and link.object.type == 'collection' and link.object.image %}
+            <div class="mega-menu__image media media--{{ image_ratio }}">
+              <img src="{{ link.object.image | img_url: '300x' }}"
+                   srcset="{{ link.object.image | img_url: '300x' }} 1x, {{ link.object.image | img_url: '600x' }} 2x"
+                   alt="{{ link.object.image.alt | escape }}"
+                   loading="lazy"
+                   width="300"
+                   height="{{ 300 | divided_by: link.object.image.aspect_ratio | round }}">
+            </div>
+          {% endif %}
+          
+          <a href="{{ link.url }}" class="mega-menu__title">
+            {{ link.title }}
+          </a>
+          
+          {% if link.links != blank %}
+            <ul class="mega-menu__links">
+              {% for childlink in link.links %}
+                <li class="mega-menu__link-item">
+                  <a href="{{ childlink.url }}" class="mega-menu__link">
+                    {{ childlink.title }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    
+    {% if show_promo and promo_image != blank %}
+      <div class="mega-menu__promo">
+        <div class="mega-menu__promo-image media media--square">
+          <img src="{{ promo_image | img_url: '300x' }}"
+               srcset="{{ promo_image | img_url: '300x' }} 1x, {{ promo_image | img_url: '600x' }} 2x"
+               alt="{{ promo_image.alt | escape }}"
+               loading="lazy"
+               width="300"
+               height="300">
+        </div>
+        {% if promo_heading != blank or promo_text != blank or promo_button_text != blank %}
+          <div class="mega-menu__promo-content">
+            {% if promo_heading != blank %}
+              <h3 class="mega-menu__promo-heading">{{ promo_heading }}</h3>
+            {% endif %}
+            {% if promo_text != blank %}
+              <div class="mega-menu__promo-text">{{ promo_text }}</div>
+            {% endif %}
+            {% if promo_button_text != blank and promo_button_url != blank %}
+              <a href="{{ promo_button_url }}" class="button button--small">
+                {{ promo_button_text }}
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .mega-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background-color: #fff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 999;
+  }
+  
+  .header__menu-item:hover .mega-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  
+  .mega-menu__inner {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .mega-menu__column {
+    padding: 0 15px;
+  }
+  
+  .mega-menu__title {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--color-secondary);
+  }
+  
+  .mega-menu__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .mega-menu__link-item {
+    margin-bottom: 8px;
+  }
+  
+  .mega-menu__link {
+    color: var(--color-text);
+    transition: color 0.2s ease;
+  }
+  
+  .mega-menu__link:hover {
+    color: var(--color-primary);
+  }
+  
+  .mega-menu__image {
+    margin-bottom: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .mega-menu__promo {
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 30px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .mega-menu__promo-image {
+    flex: 0 0 30%;
+    max-width: 30%;
+    margin-right: 30px;
+  }
+  
+  .mega-menu__promo-content {
+    flex: 1;
+  }
+  
+  .mega-menu__promo-heading {
+    margin: 0 0 10px;
+    color: var(--color-secondary);
+  }
+  
+  .mega-menu__promo-text {
+    margin-bottom: 15px;
+    color: var(--color-text);
+  }
+</style>

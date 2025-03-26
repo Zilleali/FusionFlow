@@ -1,0 +1,496 @@
+{%- liquid
+  assign filters = collection.filters
+  assign sort_by = collection.sort_by | default: collection.default_sort_by
+  assign total_active_values = 0
+  
+  for filter in filters
+    assign total_active_values = total_active_values | plus: filter.active_values.size
+  endfor
+-%}
+
+<div class="collection-filters" data-collection-filters>
+  <div class="collection-filters__inner">
+    {% comment %} Mobile filter toggle {% endcomment %}
+    <button class="collection-filters__toggle button button--secondary" data-filters-toggle>
+      {{ 'collections.filters.title_tags' | t }}
+      {% if total_active_values > 0 %}
+        <span class="collection-filters__count">({{ total_active_values }})</span>
+      {% endif %}
+    </button>
+    
+    <div class="collection-filters__sidebar">
+      <div class="collection-filters__header">
+        <h3 class="collection-filters__title">{{ 'collections.filters.title' | t }}</h3>
+        <button class="collection-filters__close" data-filters-close>
+          {% render 'icon-close' %}
+        </button>
+      </div>
+      
+      <form id="CollectionFiltersForm" class="collection-filters__form">
+        {% comment %} Sorting {% endcomment %}
+        <div class="collection-filters__group">
+          <div class="collection-filters__sort">
+            <label for="SortBy" class="collection-filters__label">
+              {{ 'collections.sorting.title' | t }}
+            </label>
+            <select name="sort_by" 
+                    class="collection-filters__select" 
+                    id="SortBy"
+                    data-sort-select>
+              {% for option in collection.sort_options %}
+                <option value="{{ option.value }}" 
+                        {% if option.value == sort_by %}selected="selected"{% endif %}>
+                  {{ option.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
+        {% comment %} Filters {% endcomment %}
+        {% for filter in filters %}
+          <div class="collection-filters__group">
+            <h4 class="collection-filters__group-title">
+              {{ filter.label }}
+              {% if filter.active_values.size > 0 %}
+                <a href="{{ filter.url_to_remove }}" class="collection-filters__reset">
+                  {{ 'collections.filters.reset' | t }}
+                </a>
+              {% endif %}
+            </h4>
+            
+            {% case filter.type %}
+              {% when 'boolean' or 'list' %}
+                <ul class="collection-filters__list">
+                  {% for filter_value in filter.values %}
+                    <li class="collection-filters__item">
+                      <input type="checkbox"
+                             class="collection-filters__checkbox"
+                             name="{{ filter_value.param_name }}"
+                             value="{{ filter_value.value }}"
+                             id="Filter-{{ filter.param_name }}-{{ forloop.index }}"
+                             {% if filter_value.active %}checked{% endif %}
+                             {% if filter_value.count == 0 and filter_value.active == false %}disabled{% endif %}>
+                      <label for="Filter-{{ filter.param_name }}-{{ forloop.index }}" 
+                             class="collection-filters__label {% if filter_value.count == 0 and filter_value.active == false %}collection-filters__label--disabled{% endif %}">
+                        {{ filter_value.label }}
+                        <span class="collection-filters__count">({{ filter_value.count }})</span>
+                      </label>
+                    </li>
+                  {% endfor %}
+                </ul>
+              
+              {% when 'price_range' %}
+                <div class="collection-filters__price-range">
+                  <div class="collection-filters__price-fields">
+                    <div class="collection-filters__price-field">
+                      <label for="Filter-{{ filter.min_value.param_name }}" 
+                             class="collection-filters__label">
+                        {{ 'collections.filters.from' | t }}
+                      </label>
+                      <input name="{{ filter.min_value.param_name }}"
+                             id="Filter-{{ filter.min_value.param_name }}"
+                             {% if filter.min_value.value %}
+                               value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}"
+                             {% endif %}
+                             type="number"
+                             placeholder="0"
+                             min="0"
+                             max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                             class="collection-filters__input">
+                    </div>
+                    <div class="collection-filters__price-field">
+                      <label for="Filter-{{ filter.max_value.param_name }}" 
+                             class="collection-filters__label">
+                        {{ 'collections.filters.to' | t }}
+                      </label>
+                      <input name="{{ filter.max_value.param_name }}"
+                             id="Filter-{{ filter.max_value.param_name }}"
+                             {% if filter.max_value.value %}
+                               value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}"
+                             {% endif %}
+                             type="number"
+                             placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                             min="0"
+                             max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                             class="collection-filters__input">
+                    </div>
+                  </div>
+                  <div class="collection-filters__price-slider" 
+                       data-range-slider
+                       data-min="0"
+                       data-max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                       data-current-min="{% if filter.min_value.value %}{{ filter.min_value.value | money_without_currency | replace: ',', '' }}{% else %}0{% endif %}"
+                       data-current-max="{% if filter.max_value.value %}{{ filter.max_value.value | money_without_currency | replace: ',', '' }}{% else %}{{ filter.range_max | money_without_currency | replace: ',', '' }}{% endif %}">
+                    <div class="collection-filters__price-slider-track"></div>
+                    <div class="collection-filters__price-slider-thumb collection-filters__price-slider-thumb--min"></div>
+                    <div class="collection-filters__price-slider-thumb collection-filters__price-slider-thumb--max"></div>
+                  </div>
+                </div>
+            {% endcase %}
+          </div>
+        {% endfor %}
+        
+        <div class="collection-filters__footer">
+          <button type="submit" class="collection-filters__submit button button--primary">
+            {{ 'collections.filters.apply' | t }}
+          </button>
+          <a href="{{ collection.url }}?sort_by={{ sort_by }}" class="collection-filters__reset">
+            {{ 'collections.filters.clear_all' | t }}
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  {% comment %} Active filters {% endcomment %}
+  {% if total_active_values > 0 %}
+    <div class="collection-filters__active">
+      <div class="collection-filters__active-inner">
+        {% for filter in filters %}
+          {% for filter_value in filter.active_values %}
+            <a href="{{ filter_value.url_to_remove }}" class="collection-filters__active-tag">
+              {{ filter_value.label }}
+              {% render 'icon-close' %}
+            </a>
+          {% endfor %}
+          
+          {% if filter.type == "price_range" %}
+            {% if filter.min_value.value != nil or filter.max_value.value != nil %}
+              <a href="{{ filter.url_to_remove }}" class="collection-filters__active-tag">
+                {% if filter.min_value.value %}
+                  {{ filter.min_value.value | money }}
+                {% else %}
+                  {{ 0 | money }}
+                {% endif %}
+                -
+                {% if filter.max_value.value %}
+                  {{ filter.max_value.value | money }}
+                {% else %}
+                  {{ filter.range_max | money }}
+                {% endif %}
+                {% render 'icon-close' %}
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .collection-filters {
+    margin-bottom: 30px;
+  }
+  
+  .collection-filters__toggle {
+    display: none;
+  }
+  
+  .collection-filters__sidebar {
+    width: 250px;
+    float: left;
+    padding-right: 30px;
+  }
+  
+  .collection-filters__header {
+    display: none;
+  }
+  
+  .collection-filters__group {
+    margin-bottom: 30px;
+  }
+  
+  .collection-filters__group-title {
+    font-size: 1rem;
+    margin: 0 0 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .collection-filters__reset {
+    font-size: 0.75rem;
+    text-decoration: underline;
+  }
+  
+  .collection-filters__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .collection-filters__item {
+    margin-bottom: 10px;
+  }
+  
+  .collection-filters__checkbox {
+    margin-right: 10px;
+  }
+  
+  .collection-filters__label {
+    cursor: pointer;
+  }
+  
+  .collection-filters__label--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .collection-filters__count {
+    opacity: 0.7;
+  }
+  
+  .collection-filters__price-range {
+    margin-top: 15px;
+  }
+  
+  .collection-filters__price-fields {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .collection-filters__price-field {
+    flex: 1;
+  }
+  
+  .collection-filters__input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .collection-filters__price-slider {
+    position: relative;
+    height: 4px;
+    background-color: #eee;
+    margin: 20px 0;
+  }
+  
+  .collection-filters__price-slider-track {
+    position: absolute;
+    height: 100%;
+    background-color: var(--color-primary);
+  }
+  
+  .collection-filters__price-slider-thumb {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: var(--color-primary);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+  
+  .collection-filters__footer {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+  }
+  
+  .collection-filters__submit {
+    flex: 1;
+  }
+  
+  .collection-filters__active {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+  }
+  
+  .collection-filters__active-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .collection-filters__active-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+  
+  .collection-filters__active-tag svg {
+    width: 12px;
+    height: 12px;
+    margin-left: 5px;
+  }
+  
+  @media (max-width: 991px) {
+    .collection-filters__sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      z-index: 1000;
+      padding: 20px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+    
+    .collection-filters__sidebar.active {
+      transform: translateX(0);
+    }
+    
+    .collection-filters__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .collection-filters__title {
+      margin: 0;
+    }
+    
+    .collection-filters__close {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    
+    .collection-filters__toggle {
+      display: inline-flex;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Mobile filters toggle
+  const filtersToggle = document.querySelector('[data-filters-toggle]');
+  const filtersClose = document.querySelector('[data-filters-close]');
+  const filtersSidebar = document.querySelector('.collection-filters__sidebar');
+  
+  if (filtersToggle && filtersSidebar) {
+    filtersToggle.addEventListener('click', function() {
+      filtersSidebar.classList.add('active');
+      document.body.classList.add('filters-open');
+    });
+  }
+  
+  if (filtersClose && filtersSidebar) {
+    filtersClose.addEventListener('click', function() {
+      filtersSidebar.classList.remove('active');
+      document.body.classList.remove('filters-open');
+    });
+  }
+  
+  // Price range slider
+  const priceSlider = document.querySelector('[data-range-slider]');
+  if (priceSlider) {
+    const minThumb = priceSlider.querySelector('.collection-filters__price-slider-thumb--min');
+    const maxThumb = priceSlider.querySelector('.collection-filters__price-slider-thumb--max');
+    const track = priceSlider.querySelector('.collection-filters__price-slider-track');
+    const minInput = document.getElementById(`Filter-${priceSlider.dataset.minValueParam}`);
+    const maxInput = document.getElementById(`Filter-${priceSlider.dataset.maxValueParam}`);
+    
+    const min = parseFloat(priceSlider.dataset.min);
+    const max = parseFloat(priceSlider.dataset.max);
+    const currentMin = parseFloat(priceSlider.dataset.currentMin || min);
+    const currentMax = parseFloat(priceSlider.dataset.currentMax || max);
+    
+    let isDragging = false;
+    let activeThumb = null;
+    
+    function updateSlider() {
+      const minPosition = ((currentMin - min) / (max - min)) * 100;
+      const maxPosition = ((currentMax - min) / (max - min)) * 100;
+      
+      minThumb.style.left = `${minPosition}%`;
+      maxThumb.style.left = `${maxPosition}%`;
+      track.style.left = `${minPosition}%`;
+      track.style.right = `${100 - maxPosition}%`;
+      
+      if (minInput) minInput.value = currentMin;
+      if (maxInput) maxInput.value = currentMax;
+    }
+    
+    function getPosition(event) {
+      const rect = priceSlider.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      return (x / rect.width) * (max - min) + min;
+    }
+    
+    function handleMouseDown(event) {
+      isDragging = true;
+      const position = getPosition(event);
+      const minDistance = Math.abs(position - currentMin);
+      const maxDistance = Math.abs(position - currentMax);
+      
+      activeThumb = minDistance < maxDistance ? minThumb : maxThumb;
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    function handleMouseMove(event) {
+      if (!isDragging) return;
+      
+      const position = getPosition(event);
+      
+      if (activeThumb === minThumb) {
+        currentMin = Math.min(position, currentMax);
+      } else {
+        currentMax = Math.max(position, currentMin);
+      }
+      
+      updateSlider();
+    }
+    
+    function handleMouseUp() {
+      isDragging = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+    
+    priceSlider.addEventListener('mousedown', handleMouseDown);
+    updateSlider();
+  }
+  
+  // AJAX form submission
+  const filtersForm = document.getElementById('CollectionFiltersForm');
+  if (filtersForm) {
+    filtersForm.addEventListener('change', function() {
+      const formData = new FormData(filtersForm);
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      for (const [key, value] of formData.entries()) {
+        if (value) {
+          searchParams.set(key, value);
+        } else {
+          searchParams.delete(key);
+        }
+      }
+      
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      history.pushState({}, '', newUrl);
+      
+      fetch(newUrl)
+        .then(response => response.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newProducts = doc.querySelector('.collection-products').innerHTML;
+          const newFilters = doc.querySelector('.collection-filters').innerHTML;
+          
+          document.querySelector('.collection-products').innerHTML = newProducts;
+          document.querySelector('.collection-filters').innerHTML = newFilters;
+        })
+        .catch(error => console.error('Error:', error));
+    });
+  }
+});
+</script>
