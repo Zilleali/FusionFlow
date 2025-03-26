@@ -1,0 +1,317 @@
+{% comment %}
+  Mobile navigation drawer
+{% endcomment %}
+
+<div class="mobile-navigation" data-mobile-navigation>
+  <div class="mobile-navigation__overlay" data-mobile-nav-close></div>
+  
+  <div class="mobile-navigation__drawer">
+    <button class="mobile-navigation__close" data-mobile-nav-close aria-label="{{ 'general.accessibility.close' | t }}">
+      {% render 'icon-close' %}
+    </button>
+    
+    <nav class="mobile-navigation__nav" role="navigation">
+      <ul class="mobile-navigation__menu">
+        {% for link in linklists[section.settings.mobile_menu].links %}
+          <li class="mobile-navigation__item {% if link.links != blank %}has-dropdown{% endif %}">
+            <a href="{{ link.url }}" class="mobile-navigation__link">
+              {{ link.title }}
+            </a>
+            
+            {% if link.links != blank %}
+              <button class="mobile-navigation__dropdown-toggle" data-dropdown-toggle aria-label="{{ 'general.accessibility.toggle_dropdown' | t }}">
+                {% render 'icon-arrow-right' %}
+              </button>
+              
+              <div class="mobile-navigation__dropdown">
+                <div class="mobile-navigation__dropdown-header">
+                  <button class="mobile-navigation__dropdown-back" data-dropdown-back aria-label="{{ 'general.accessibility.back' | t }}">
+                    {% render 'icon-arrow-left' %}
+                  </button>
+                  <span class="mobile-navigation__dropdown-title">{{ link.title }}</span>
+                </div>
+                
+                <ul class="mobile-navigation__dropdown-menu">
+                  {% for childlink in link.links %}
+                    <li class="mobile-navigation__dropdown-item {% if childlink.links != blank %}has-dropdown{% endif %}">
+                      <a href="{{ childlink.url }}" class="mobile-navigation__dropdown-link">
+                        {{ childlink.title }}
+                      </a>
+                      
+                      {% if childlink.links != blank %}
+                        <button class="mobile-navigation__dropdown-toggle" data-dropdown-toggle aria-label="{{ 'general.accessibility.toggle_dropdown' | t }}">
+                          {% render 'icon-arrow-right' %}
+                        </button>
+                        
+                        <div class="mobile-navigation__dropdown">
+                          <div class="mobile-navigation__dropdown-header">
+                            <button class="mobile-navigation__dropdown-back" data-dropdown-back aria-label="{{ 'general.accessibility.back' | t }}">
+                              {% render 'icon-arrow-left' %}
+                            </button>
+                            <span class="mobile-navigation__dropdown-title">{{ childlink.title }}</span>
+                          </div>
+                          
+                          <ul class="mobile-navigation__dropdown-menu">
+                            {% for grandchildlink in childlink.links %}
+                              <li class="mobile-navigation__dropdown-item">
+                                <a href="{{ grandchildlink.url }}" class="mobile-navigation__dropdown-link">
+                                  {{ grandchildlink.title }}
+                                </a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        </div>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+    
+    <div class="mobile-navigation__footer">
+      {% if shop.customer_accounts_enabled %}
+        <div class="mobile-navigation__account">
+          <a href="{{ routes.account_url }}" class="mobile-navigation__account-link">
+            {% render 'icon-account' %}
+            <span>
+              {% if customer %}
+                {{ 'customer.account.title' | t }}
+              {% else %}
+                {{ 'customer.log_in' | t }}
+              {% endif %}
+            </span>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .mobile-navigation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  
+  .mobile-navigation.active {
+    pointer-events: auto;
+  }
+  
+  .mobile-navigation__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .mobile-navigation.active .mobile-navigation__overlay {
+    opacity: 1;
+  }
+  
+  .mobile-navigation__drawer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 90%;
+    max-width: 400px;
+    height: 100%;
+    background-color: #fff;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .mobile-navigation.active .mobile-navigation__drawer {
+    transform: translateX(0);
+  }
+  
+  .mobile-navigation__close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    z-index: 1;
+  }
+  
+  .mobile-navigation__nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  
+  .mobile-navigation__menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .mobile-navigation__item {
+    position: relative;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .mobile-navigation__link {
+    display: block;
+    padding: 15px 20px;
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .mobile-navigation__dropdown-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  
+  .mobile-navigation__dropdown {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .mobile-navigation__dropdown.active {
+    transform: translateX(0);
+  }
+  
+  .mobile-navigation__dropdown-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .mobile-navigation__dropdown-back {
+    margin-right: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  
+  .mobile-navigation__dropdown-title {
+    font-weight: 600;
+  }
+  
+  .mobile-navigation__dropdown-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .mobile-navigation__dropdown-item {
+    position: relative;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .mobile-navigation__dropdown-link {
+    display: block;
+    padding: 15px 20px;
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .mobile-navigation__footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+  }
+  
+  .mobile-navigation__account-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .mobile-navigation__account-link svg {
+    margin-right: 10px;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const mobileNav = document.querySelector('[data-mobile-navigation]');
+  const mobileNavToggle = document.querySelector('.mobile-menu-toggle');
+  const mobileNavClose = document.querySelectorAll('[data-mobile-nav-close]');
+  
+  // Toggle mobile navigation
+  if (mobileNavToggle) {
+    mobileNavToggle.addEventListener('click', function() {
+      mobileNav.classList.add('active');
+      document.body.classList.add('mobile-nav-open');
+    });
+  }
+  
+  // Close mobile navigation
+  mobileNavClose.forEach(button => {
+    button.addEventListener('click', function() {
+      mobileNav.classList.remove('active');
+      document.body.classList.remove('mobile-nav-open');
+    });
+  });
+  
+  // Dropdown functionality
+  const dropdownToggles = document.querySelectorAll('[data-dropdown-toggle]');
+  const dropdownBacks = document.querySelectorAll('[data-dropdown-back]');
+  
+  dropdownToggles.forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      const dropdown = this.nextElementSibling;
+      dropdown.classList.add('active');
+    });
+  });
+  
+  dropdownBacks.forEach(back => {
+    back.addEventListener('click', function() {
+      const dropdown = this.closest('.mobile-navigation__dropdown');
+      dropdown.classList.remove('active');
+    });
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Mobile navigation",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "mobile_menu",
+      "label": "Mobile menu",
+      "default": "main-menu"
+    }
+  ]
+}
+{% endschema %}

@@ -1,3 +1,7 @@
+{% comment %}
+  Header section group containing logo, navigation, and icons
+{% endcomment %}
+
 {%- liquid
   assign logo_width = section.settings.logo_width
   assign logo_height = logo_width | divided_by: section.settings.logo_ratio
@@ -8,155 +12,245 @@
   endif
 -%}
 
+<header class="header" role="banner">
+  <div class="container">
+    <div class="header__inner">
+      {% comment %} Mobile Menu Toggle {% endcomment %}
+      <button class="mobile-menu-toggle header__icon" aria-label="{{ 'general.accessibility.menu' | t }}">
+        {% render 'icon-menu' %}
+      </button>
+      
+      {% comment %} Logo {% endcomment %}
+      <div class="header__logo">
+        <a href="{{ routes.root_url }}">
+          {%- if section.settings.logo != blank -%}
+            <img src="{{ section.settings.logo | img_url: 'master' }}" 
+                 alt="{{ shop.name }}"
+                 loading="lazy"
+                 width="{{ logo_width }}"
+                 height="{{ logo_height }}">
+          {%- else -%}
+            <span class="header__logo-text">{{ shop.name }}</span>
+          {%- endif -%}
+        </a>
+      </div>
+      
+      {% comment %} Main Navigation {% endcomment %}
+      <nav class="header__navigation" role="navigation">
+        <ul class="header__menu">
+          {% for link in linklists[section.settings.main_menu].links %}
+            <li class="header__menu-item {% if link.links != blank %}has-dropdown{% endif %}">
+              <a href="{{ link.url }}" class="header__menu-link">
+                {{ link.title }}
+              </a>
+              {% if link.links != blank %}
+                <div class="header__dropdown">
+                  <div class="header__dropdown-inner">
+                    {% for childlink in link.links %}
+                      <div class="header__dropdown-column">
+                        <a href="{{ childlink.url }}" class="header__dropdown-title">
+                          {{ childlink.title }}
+                        </a>
+                        {% if childlink.links != blank %}
+                          <ul class="header__dropdown-list">
+                            {% for grandchildlink in childlink.links %}
+                              <li>
+                                <a href="{{ grandchildlink.url }}">
+                                  {{ grandchildlink.title }}
+                                </a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+      
+      {% comment %} Icons {% endcomment %}
+      <div class="header__icons">
+        {% if section.settings.show_search %}
+          <a href="{{ routes.search_url }}" class="header__icon search-toggle" aria-label="{{ 'general.search.search' | t }}">
+            {% render 'icon-search' %}
+          </a>
+        {% endif %}
+        
+        {% if shop.customer_accounts_enabled %}
+          <a href="{{ routes.account_url }}" class="header__icon" aria-label="{{ 'customer.account.title' | t }}">
+            {% render 'icon-account' %}
+          </a>
+        {% endif %}
+        
+        <a href="{{ routes.cart_url }}" class="header__icon cart-toggle" aria-label="{{ 'cart.general.title' | t }}">
+          {% render 'icon-cart' %}
+          <span class="header__icon-count cart-count" data-cart-count>
+            {{ cart.item_count }}
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
 <style>
   .header {
-    --header-bg: {{ section.settings.bg_color }};
-    --header-text: {{ section.settings.text_color }};
-    --header-height: {{ section.settings.height }}px;
-    background-color: var(--header-bg);
-    color: var(--header-text);
-    height: var(--header-height);
-    {% if transparent_header %}
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background-color: transparent;
-    {% else %}
-      position: relative;
-    {% endif %}
+    position: relative;
+    z-index: 100;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+  }
+  
+  .header__logo {
+    flex: 0 0 auto;
   }
   
   .header__logo img {
-    width: {{ logo_width }}px;
-    height: {{ logo_height }}px;
-    object-fit: contain;
+    max-height: 40px;
+    width: auto;
   }
   
-  {% if section.settings.sticky_header %}
-    .header-sticky-wrapper {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
+  .header__logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  
+  .header__navigation {
+    flex: 1 1 auto;
+    padding: 0 20px;
+  }
+  
+  .header__menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .header__menu-item {
+    position: relative;
+    margin: 0 10px;
+  }
+  
+  .header__menu-link {
+    padding: 10px 5px;
+    font-weight: 600;
+    color: #333;
+    text-decoration: none;
+  }
+  
+  .header__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 999;
+  }
+  
+  .header__menu-item:hover .header__dropdown {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .header__dropdown-inner {
+    padding: 15px;
+  }
+  
+  .header__dropdown-column {
+    margin-bottom: 15px;
+  }
+  
+  .header__dropdown-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: block;
+  }
+  
+  .header__dropdown-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .header__dropdown-list li {
+    margin-bottom: 5px;
+  }
+  
+  .header__icons {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .header__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    position: relative;
+  }
+  
+  .header__icon-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  
+  @media (max-width: 991px) {
+    .header__navigation {
+      display: none;
     }
     
-    .header-sticky-wrapper.scrolled .header {
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .mobile-menu-toggle {
+      display: flex;
     }
-  {% endif %}
+    
+    .header__logo {
+      flex: 1;
+      text-align: center;
+    }
+  }
 </style>
-
-<div class="header-sticky-wrapper" data-header-sticky>
-  <header class="header" role="banner">
-    <div class="container">
-      <div class="header__inner">
-        {% comment %} Mobile Menu Toggle {% endcomment %}
-        <button class="mobile-menu-toggle header__icon" aria-label="{{ 'general.accessibility.menu' | t }}">
-          {% render 'icon-menu' %}
-        </button>
-        
-        {% comment %} Logo {% endcomment %}
-        <div class="header__logo">
-          <a href="{{ routes.root_url }}">
-            {%- if section.settings.logo != blank -%}
-              <img src="{{ section.settings.logo | img_url: 'master' }}" 
-                   alt="{{ shop.name }}"
-                   loading="lazy">
-            {%- else -%}
-              <span class="header__logo-text">{{ shop.name }}</span>
-            {%- endif -%}
-          </a>
-        </div>
-        
-        {% comment %} Main Navigation {% endcomment %}
-        <nav class="header__navigation" role="navigation">
-          <ul class="header__menu">
-            {% for link in linklists[section.settings.main_menu].links %}
-              <li class="header__menu-item {% if link.links != blank %}has-dropdown{% endif %}">
-                <a href="{{ link.url }}" class="header__menu-link">
-                  {{ link.title }}
-                </a>
-                {% if link.links != blank %}
-                  <div class="header__dropdown">
-                    <div class="header__dropdown-inner">
-                      {% for childlink in link.links %}
-                        <div class="header__dropdown-column">
-                          <a href="{{ childlink.url }}" class="header__dropdown-title">
-                            {{ childlink.title }}
-                          </a>
-                          {% if childlink.links != blank %}
-                            <ul class="header__dropdown-list">
-                              {% for grandchildlink in childlink.links %}
-                                <li>
-                                  <a href="{{ grandchildlink.url }}">
-                                    {{ grandchildlink.title }}
-                                  </a>
-                                </li>
-                              {% endfor %}
-                            </ul>
-                          {% endif %}
-                        </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        </nav>
-        
-        {% comment %} Icons {% endcomment %}
-        <div class="header__icons">
-          {% if section.settings.show_search %}
-            <a href="{{ routes.search_url }}" class="header__icon search-toggle" aria-label="{{ 'general.search.search' | t }}">
-              {% render 'icon-search' %}
-            </a>
-          {% endif %}
-          
-          {% if shop.customer_accounts_enabled %}
-            <a href="{{ routes.account_url }}" class="header__icon" aria-label="{{ 'customer.account.title' | t }}">
-              {% render 'icon-account' %}
-            </a>
-          {% endif %}
-          
-          <a href="{{ routes.cart_url }}" class="header__icon cart-toggle" aria-label="{{ 'cart.general.title' | t }}">
-            {% render 'icon-cart' %}
-            <span class="header__icon-count cart-count" data-cart-count>
-              {{ cart.item_count }}
-            </span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
-  
-  {% comment %} Top Bar {% endcomment %}
-  {% if section.settings.show_top_bar %}
-    <div class="top-bar" style="background-color: {{ section.settings.top_bar_bg }}; color: {{ section.settings.top_bar_text }};">
-      <div class="container">
-        <div class="top-bar__inner">
-          <div class="top-bar__text">
-            {{ section.settings.top_bar_text }}
-          </div>
-          {% if section.settings.show_top_bar_social %}
-            <div class="top-bar__social">
-              {% render 'social-links' %}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  {% endif %}
-</div>
 
 {% schema %}
 {
   "name": "Header",
   "settings": [
-    {
-      "type": "header",
-      "content": "Logo"
-    },
     {
       "type": "image_picker",
       "id": "logo",
@@ -181,84 +275,15 @@
       "default": 3
     },
     {
-      "type": "header",
-      "content": "Navigation"
-    },
-    {
       "type": "link_list",
       "id": "main_menu",
-      "label": "Main menu",
+      "label": "Menu",
       "default": "main-menu"
     },
     {
       "type": "checkbox",
       "id": "show_search",
       "label": "Show search icon",
-      "default": true
-    },
-    {
-      "type": "header",
-      "content": "Top bar"
-    },
-    {
-      "type": "checkbox",
-      "id": "show_top_bar",
-      "label": "Show top bar",
-      "default": true
-    },
-    {
-      "type": "text",
-      "id": "top_bar_text",
-      "label": "Top bar text",
-      "default": "Free shipping on all orders over $50"
-    },
-    {
-      "type": "checkbox",
-      "id": "show_top_bar_social",
-      "label": "Show social icons in top bar",
-      "default": true
-    },
-    {
-      "type": "color",
-      "id": "top_bar_bg",
-      "label": "Top bar background",
-      "default": "#575757"
-    },
-    {
-      "type": "color",
-      "id": "top_bar_text",
-      "label": "Top bar text",
-      "default": "#ffffff"
-    },
-    {
-      "type": "header",
-      "content": "Design"
-    },
-    {
-      "type": "range",
-      "id": "height",
-      "label": "Header height (px)",
-      "min": 50,
-      "max": 150,
-      "step": 5,
-      "default": 80
-    },
-    {
-      "type": "color",
-      "id": "bg_color",
-      "label": "Background color",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "text_color",
-      "label": "Text color",
-      "default": "#333333"
-    },
-    {
-      "type": "checkbox",
-      "id": "sticky_header",
-      "label": "Enable sticky header",
       "default": true
     },
     {
