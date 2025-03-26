@@ -1,5 +1,0 @@
-- name: Shopify Themekit
-  uses: kwnath/shopify-theme-kit-action@v1.3.3
-
-  - name: Shopify CLI theme deploy
-  uses: pgrimaud/action-shopify-cli@0.0.1
