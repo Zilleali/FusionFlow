@@ -10,6 +10,40 @@
   assign show_author = section.settings.show_author
   assign show_excerpt = section.settings.show_excerpt
 -%}
+{% for i in (1..post_limit) %}
+  <div class="blog-posts__item grid__item">
+    <article class="blog-card">
+      <a href="#" class="blog-card__image">
+        <div class="placeholder-background">
+          {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+        </div>
+      </a>
+      
+      <div class="blog-card__content">
+        <h3 class="blog-card__title">
+          <a href="#">{{ 'homepage.onboarding.blog_title' | t }}</a>
+        </h3>
+        
+        <div class="blog-card__meta">
+          <span class="blog-card__date">
+            {{ "now" | date: "%B %d, %Y" }}
+          </span>
+          <span class="blog-card__author">
+            {{ 'homepage.onboarding.blog_author' | t }}
+          </span>
+        </div>
+        
+        <div class="blog-card__excerpt">
+          {{ 'homepage.onboarding.blog_excerpt' | t }}
+        </div>
+        
+        <a href="#" class="blog-card__read-more">
+          {{ 'blogs.article.read_more' | t }}
+        </a>
+      </div>
+    </article>
+  </div>
+{% endfor %}
 
 <div class="blog-posts">
   <div class="container">

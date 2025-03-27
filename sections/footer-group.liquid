@@ -112,7 +112,7 @@
     
     <div class="footer__bottom">
       <div class="footer__copyright">
-        &copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. {{ 'footer.bottom.copyright' | t }}
+        {{ 'footer.bottom.copyright' | t: year: "now" | date: "%Y", shop_name: shop.name }}
       </div>
       
       {% if show_payment_icons %}

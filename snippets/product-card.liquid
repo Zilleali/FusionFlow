@@ -116,3 +116,14 @@
     {%- endif -%}
   </div>
 </div>
+{% else %}
+  <div class="product-card">
+    <div class="product-card__image">
+      {{ 'product-' | append: forloop.index | placeholder_svg_tag: 'placeholder-svg' }}
+    </div>
+    <div class="product-card__info">
+      <h3 class="product-card__title">{{ 'homepage.onboarding.product_title' | t }}</h3>
+      <div class="product-card__price">{{ 1999 | money }}</div>
+    </div>
+  </div>
+{% endif %}

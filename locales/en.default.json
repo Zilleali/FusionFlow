@@ -10,7 +10,11 @@
     "general": {
       "search": {
         "placeholder": "Search our store"
-      }
+      },"newsletter": {
+      "submit": "Subscribe",
+      "placeholder": "Your email address",
+      "success": "Thank you for subscribing!"
+    }
     },"collections": {
     "general": {
       "shop_by_category": "Shop by Category",
@@ -20,5 +24,24 @@
   "header": {
     "account": "Account",
     "search": "Search"
+  },
+  "footer": {
+    "bottom": {
+      "copyright": "© {year} {shop_name}. All rights reserved."
+    }
+  },
+  "homepage": {
+    "onboarding": {
+      "blog_title": "Featured blog post",
+      "blog_author": "Admin",
+      "blog_excerpt": "This is an example of a blog post excerpt that might appear on your homepage.",
+      "product_title": "Sample product"
+    }
+  },
+  "blogs": {
+    "article": {
+      "read_more": "Read more",
+      "by_author": "By {author}"
+    }
   }
   }
