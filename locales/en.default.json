@@ -11,5 +11,14 @@
       "search": {
         "placeholder": "Search our store"
       }
+    },"collections": {
+    "general": {
+      "shop_by_category": "Shop by Category",
+      "view_all": "View All"
     }
+  },
+  "header": {
+    "account": "Account",
+    "search": "Search"
+  }
   }
